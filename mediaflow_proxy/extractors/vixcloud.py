@@ -37,19 +37,19 @@ class VixCloudExtractor(BaseExtractor):
             except (KeyError, json.JSONDecodeError, AttributeError) as e:
                 raise ExtractorError(f"Failed to parse version: {e}")
 
-  async def extract(self, url: str, **kwargs) -> Dict[str, Any]:
-      """Extract Vixcloud URL."""
-      if "iframe" in url:
-          site_url = url.split("/iframe")[0]
-          version = await self.version(site_url)
-          re sponse = await self._make_request(url, headers={"x-inertia": "true", "x-inertia-version": version})
-          soup = BeautifulSoup(response.text, "lxml", parse_only=SoupStrainer("iframe"))
-          iframe = soup.find("iframe").get("src")
-          response = await self._make_request(iframe, headers={"x-inertia": "true", "x-inertia-version": version})
-      elif "movie" in url or "tv" in url:
-          response = await self._make_request(url)
-    
-    # rest of code...
+    async def extract(self, url: str, **kwargs) -> Dict[str, Any]:
+        """Extract Vixcloud URL."""
+        site_url = url.split("/movie/")[0] if "/movie/" in url else url.split("/tv/")[0] if "/tv/" in url else url.split("/iframe")[0]
+        version = await self.version(site_url)
+        headers = {"x-inertia": "true", "x-inertia-version": version}
+        
+        if "iframe" in url:
+            response = await self._make_request(url, headers=headers)
+            soup = BeautifulSoup(response.text, "lxml", parse_only=SoupStrainer("iframe"))
+            iframe = soup.find("iframe").get("src")
+            response = await self._make_request(iframe, headers=headers)
+        elif "movie" in url or "tv" in url:
+            response = await self._make_request(url, headers=headers)
         
         if response.status_code != 200:
             raise ExtractorError("Failed to extract URL components, Invalid Request")
